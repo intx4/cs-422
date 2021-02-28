@@ -10,7 +10,7 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
   * @see [[ch.epfl.dias.cs422.helpers.builder.skeleton.Scan]]
   * @see [[ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator]]
   */
-class Scan protected (
+ class Scan protected(
     cluster: RelOptCluster,
     traitSet: RelTraitSet,
     table: RelOptTable,
@@ -19,7 +19,6 @@ class Scan protected (
       ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
     ](cluster, traitSet, table)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
-
   /**
     * A [[Store]] is an in-memory storage the data.
     *
@@ -30,8 +29,7 @@ class Scan protected (
   protected val scannable: Store = tableToStore(
     table.unwrap(classOf[ScannableTable])
   )
-  protected var rowId: Int
-
+  private var rowId = 0
   /**
     * Helper function (you do not have to use it or implement it)
     * It's purpose is to show how to convert the [[scannable]] to a
@@ -56,7 +54,7 @@ class Scan protected (
     * @inheritdoc
     */
   override def open(): Unit = {
-    var rowId = 0
+    rowId = 0
   }
 
    /**
