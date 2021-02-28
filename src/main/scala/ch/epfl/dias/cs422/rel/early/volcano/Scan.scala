@@ -14,7 +14,7 @@ class Scan protected (
     cluster: RelOptCluster,
     traitSet: RelTraitSet,
     table: RelOptTable,
-    tableToStore: ScannableTable => Store
+    tableToStore: ScannableTable => Store //it's a function taking a ScannableTable and returning a Store
 ) extends skeleton.Scan[
       ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
     ](cluster, traitSet, table)
@@ -30,6 +30,7 @@ class Scan protected (
   protected val scannable: Store = tableToStore(
     table.unwrap(classOf[ScannableTable])
   )
+  protected var rowId: Int
 
   /**
     * Helper function (you do not have to use it or implement it)
@@ -46,22 +47,35 @@ class Scan protected (
           * For this project, it's safe to assume scannable will always
           * be a [[RowStore]].
           */
-        ???
+        val rowStore: RowStore = scannable.asInstanceOf[RowStore]
+        rowStore.getRow(rowId)
     }
   }
 
   /**
     * @inheritdoc
     */
-  override def open(): Unit = ???
+  override def open(): Unit = {
+    var rowId = 0
+  }
 
+   /**
+    * @inheritdoc
+    */
+  override def next(): Option[Tuple] = {
+    if (rowId != -1) {
+      val tuple = getRow(rowId)
+      rowId = rowId + 1
+      Some(tuple) //builds an Option[Tuple]
+    }
+    else{
+      None //builds a Nil type for Option[Tuple]
+    }
+  }
   /**
     * @inheritdoc
     */
-  override def next(): Option[Tuple] = ???
-
-  /**
-    * @inheritdoc
-    */
-  override def close(): Unit = ???
+  override def close(): Unit = {
+    rowId = -1
+  }
 }
