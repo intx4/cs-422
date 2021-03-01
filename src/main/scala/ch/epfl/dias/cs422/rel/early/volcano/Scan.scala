@@ -1,6 +1,7 @@
 package ch.epfl.dias.cs422.rel.early.volcano
 
 import ch.epfl.dias.cs422.helpers.builder.skeleton
+import ch.epfl.dias.cs422.helpers.rel.RelOperator
 import ch.epfl.dias.cs422.helpers.rel.RelOperator.{NilTuple, Tuple}
 import ch.epfl.dias.cs422.helpers.store.{RowStore, ScannableTable, Store}
 import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
@@ -67,6 +68,7 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
       Some(tuple) //builds an Option[Tuple]
     }
     else{
+      //invalid call
       None //builds a Nil type for Option[Tuple]
     }
   }
