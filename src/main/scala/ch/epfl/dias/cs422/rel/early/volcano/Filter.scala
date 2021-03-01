@@ -41,7 +41,7 @@ class Filter protected (
     var found = false
     breakable {
         val option = input.next()
-        if (option == None) {
+        if (option.isEmpty) {
           None
         }
         else { //Option[Tuple]

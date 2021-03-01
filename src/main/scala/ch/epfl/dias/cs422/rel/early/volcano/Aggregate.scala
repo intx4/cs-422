@@ -8,7 +8,7 @@ import org.apache.calcite.util.ImmutableBitSet
 
 import scala.collection.mutable
 import util.control.Breaks._
-import scala.collection.mutable.HashMap
+
 
 
 /**
@@ -27,7 +27,7 @@ class Aggregate protected (
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   private var tuples = List[Tuple]()
-  private var head: Int = 0
+  private var index : Int = 0
   /**
     * @inheritdoc
     */
@@ -53,7 +53,7 @@ class Aggregate protected (
         }
       }
     }
-    head = 0
+    index = 0
     if (case1){
       //Pseudo-Code 1
       var tuple = IndexedSeq[RelOperator.Elem]()
@@ -88,7 +88,7 @@ class Aggregate protected (
 
           i = 0
           for(col <- tuple){
-            if (groupSet.asList().contains(i) == false){
+            if (!groupSet.asList().contains(i)){
               tupleToInsert = tupleToInsert.:+(col)
             }
             i = i + 1
@@ -140,7 +140,7 @@ class Aggregate protected (
             val args1 = agg.getArgument(value1)
             val args2 = agg.getArgument(value2)
 
-            val value = agg.reduce(args1, args2)
+            val value = agg.reduce(args1, args2).asInstanceOf[Tuple]
             resultInt = resultInt.drop(2).:+(value)
           }
           val finalValue  = agg.getArgument(resultInt.head)
@@ -160,12 +160,12 @@ class Aggregate protected (
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    if (head == tuples.length){
+    if (index == tuples.length){
       NilTuple
     }
     else{
-      head = head + 1
-      Some(tuples(head-1))
+      index = index + 1
+      Some(tuples(index-1))
     }
   }
 

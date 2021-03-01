@@ -40,7 +40,7 @@ class Project protected (
     */
   override def next(): Option[Tuple] = {
     val option = input.next()
-    if (option == None) {
+    if (option.isEmpty) {
       None
     }
     else {
