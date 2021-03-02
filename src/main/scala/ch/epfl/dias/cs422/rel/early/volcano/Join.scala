@@ -1,8 +1,10 @@
 package ch.epfl.dias.cs422.rel.early.volcano
 
 import ch.epfl.dias.cs422.helpers.builder.skeleton
-import ch.epfl.dias.cs422.helpers.rel.RelOperator.Tuple
+import ch.epfl.dias.cs422.helpers.rel.RelOperator.{NilTuple, Tuple}
 import org.apache.calcite.rex.RexNode
+
+import scala.collection.mutable
 
 /**
   * @inheritdoc
@@ -20,22 +22,68 @@ class Join(
     ](left, right, condition)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
+  private var joined = List[Tuple]()
+  private var index = 0
   /**
     * @inheritdoc
     */
   override def open(): Unit = {
     left.open()
     right.open()
-    val leftR = List[Tuple]()
-    var tuple = left.next()
-    while
+    var leftR = List[Tuple]()
+    var option = left.next()
+    var tuple : Tuple = NilTuple.get
+    //take left child relation
+    if (option.isDefined){
+      tuple = option.get
+    }
+    while (option.isDefined){
+      leftR = leftR.:+(tuple)
+      option = left.next()
+      tuple = option.get
+    }
+    //build phase
+    val hashToValues = new mutable.HashMap[String, Tuple]()
+    for (tuple <- leftR){
+      val iterator = getLeftKeys.iterator
+      var hashKey = ""
+      while(iterator.hasNext){
+        val i = iterator.next()
+        val col = tuple(i).hashCode().toString
+        hashKey += col + "_"
+      }
+      hashToValues.put(hashKey, tuple)
+    }
+    option = right.next()
+    while(option.isDefined){
+      tuple = option.get
+      val iterator = getRightKeys.iterator
+      var hashKey = ""
+      while(iterator.hasNext){
+        val i = iterator.next()
+        val col = tuple(i).hashCode().toString
+        hashKey += col + "_"
+      }
+      if (hashToValues.contains(hashKey)){
+        var tupleToInsert = hashToValues(hashKey)
+        tupleToInsert = tupleToInsert.:+(tuple)
+        joined = joined.:+(tupleToInsert)
+      }
+      option = right.next()
+    }
   }
 
   /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-
+    if (index == joined.length){
+      NilTuple
+    }
+    else{
+      index = index + 1
+      Some(joined(index-1))
+    }
   }
 
 

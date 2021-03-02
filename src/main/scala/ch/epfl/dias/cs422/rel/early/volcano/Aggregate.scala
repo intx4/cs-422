@@ -44,7 +44,7 @@ class Aggregate protected (
       }
       else {
         var tuple = option.get
-        while (tuple != NilTuple) {
+        while (option != NilTuple) {
           tuplesFromLow = tuplesFromLow.appended(tuple)
           tuple = input.next().get
           case2 = true

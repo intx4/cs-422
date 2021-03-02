@@ -36,7 +36,7 @@ class Sort protected (
     var tuple = input.next()
     breakable {
       while (tuple.isDefined) {
-        if (tuple.get != NilTuple) {
+        if (tuple != NilTuple) {
           sorted = sorted.:+(tuple.get)
           tuple = input.next()
         }
