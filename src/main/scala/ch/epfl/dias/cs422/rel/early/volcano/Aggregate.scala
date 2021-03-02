@@ -36,21 +36,20 @@ class Aggregate protected (
     var tuplesFromLow = List[Tuple]()
     var case1 = false
     var case2 = false
+    val option = input.next()
     breakable{
-      val option = input.next()
       if (option.isEmpty){
         case1 = true
         break
       }
-      else{
-        val tuple = option.get
-        if (tuple == NilTuple){
-          break
-        }
-        else{
+      else {
+        var tuple = option.get
+        while (tuple != NilTuple) {
           tuplesFromLow = tuplesFromLow.appended(tuple)
+          tuple = input.next().get
           case2 = true
         }
+        break
       }
     }
     index = 0

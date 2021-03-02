@@ -23,15 +23,27 @@ class Join(
   /**
     * @inheritdoc
     */
-  override def open(): Unit = ???
+  override def open(): Unit = {
+    left.open()
+    right.open()
+    val leftR = List[Tuple]()
+    var tuple = left.next()
+    while
+  }
 
   /**
     * @inheritdoc
     */
-  override def next(): Option[Tuple] = ???
+  override def next(): Option[Tuple] = {
+
+  }
+
 
   /**
     * @inheritdoc
     */
-  override def close(): Unit = ???
+  override def close(): Unit = {
+    left.close()
+    right.close()
+  }
 }

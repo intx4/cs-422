@@ -2,9 +2,10 @@ package ch.epfl.dias.cs422.rel.early.volcano
 
 import ch.epfl.dias.cs422.helpers.builder.skeleton
 import ch.epfl.dias.cs422.helpers.rel.RelOperator
-import ch.epfl.dias.cs422.helpers.rel.RelOperator.Tuple
+import ch.epfl.dias.cs422.helpers.rel.RelOperator.{NilTuple, Tuple}
 import org.apache.calcite.rel.{RelCollation, RelFieldCollation}
 
+import util.control.Breaks._
 import java.util.Comparator
 import scala.collection.JavaConverters._
 
@@ -32,9 +33,17 @@ class Sort protected (
   override def open(): Unit = {
     input.open()
     //consume all unsorted tuples
-    val tuple = input.next()
-    while (tuple.isDefined){
-      sorted = sorted.:+(tuple.get)
+    var tuple = input.next()
+    breakable {
+      while (tuple.isDefined) {
+        if (tuple.get != NilTuple) {
+          sorted = sorted.:+(tuple.get)
+          tuple = input.next()
+        }
+        else {
+          break
+        }
+      }
     }
     val collationList = collation.getFieldCollations
     val iterator = collationList.iterator()
