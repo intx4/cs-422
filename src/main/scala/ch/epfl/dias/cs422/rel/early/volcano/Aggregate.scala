@@ -36,21 +36,15 @@ class Aggregate protected (
     var tuplesFromLow = List[Tuple]()
     var case1 = false
     var case2 = false
-    val option = input.next()
-    breakable{
-      if (option.isEmpty){
-        case1 = true
-        break
-      }
-      else {
-        var tuple = option.get
-        while (option != NilTuple) {
-          tuplesFromLow = tuplesFromLow.appended(tuple)
-          tuple = input.next().get
-          case2 = true
-        }
-        break
-      }
+    var option = input.next()
+    if (option == NilTuple){
+      case1 = true
+    }
+    while (option != NilTuple && !case1) {
+      case2 = true
+      var tuple = option.get
+      tuplesFromLow = tuplesFromLow.:+(tuple)
+      option = input.next()
     }
     index = 0
     if (case1){
@@ -109,15 +103,13 @@ class Aggregate protected (
             if (groupSet.asList().contains(i)){
               fields = fields.:+(col)
             }
-            else{
-              values = values.:+(col)
-            }
+            values = values.:+(col)
             i = i +1
           }
           listOfFields = listOfFields.:+(fields)
           listOfValues = listOfValues.:+(values)
 
-          hashToFields.put(hashKey, listOfValues)
+          hashToFields.put(hashKey, listOfFields)
           hashToValues.put(hashKey, listOfValues)
         }
       }
@@ -130,19 +122,19 @@ class Aggregate protected (
         val hashKey = entry._1
         var resultFin = IndexedSeq[RelOperator.Elem]()
         for (agg <- aggCalls){
-          var resultInt = values
+          var resultInt = List[RelOperator.Elem]()
+          for (v <- values){
+            resultInt = resultInt.:+(agg.getArgument(v))
+          }
           //reduce the tuples in the group by pairs until we have one element left
           while (resultInt.length > 1) {
-            val value1 = resultInt.head
-            val value2 = resultInt(1)
+            val args1 = resultInt.head
+            val args2 = resultInt(1)
 
-            val args1 = agg.getArgument(value1)
-            val args2 = agg.getArgument(value2)
-
-            val value = agg.reduce(args1, args2).asInstanceOf[Tuple]
+            val value = agg.reduce(args1, args2)
             resultInt = resultInt.drop(2).:+(value)
           }
-          val finalValue  = agg.getArgument(resultInt.head)
+          val finalValue  = resultInt.head
           resultFin = resultFin.:+(finalValue)
         }
         var tuple = IndexedSeq[RelOperator.Elem]()

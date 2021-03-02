@@ -39,25 +39,18 @@ class Filter protected (
     */
   override def next(): Option[Tuple] = {
     var found = false
-    breakable {
-        val option = input.next()
-        if (option.isEmpty) {
-          None
-        }
-        else { //Option[Tuple]
-          var tuple = option.get
-          if (tuple == NilTuple) {
-            Some(tuple)
+    var option = input.next()
+      while (option != NilTuple) {
+          val tuple = option.get
+          found = predicate(tuple)
+          if (found) {
+            return Some(tuple)
           }
-          else {
-            found = predicate(tuple)
-            if (found) {
-              Some(tuple)
-            }
+          else{//not found
+            option = input.next()
           }
         }
-      }
-    None
+    NilTuple
   }
   /**
     * @inheritdoc

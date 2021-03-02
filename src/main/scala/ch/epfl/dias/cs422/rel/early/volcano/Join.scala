@@ -1,6 +1,7 @@
 package ch.epfl.dias.cs422.rel.early.volcano
 
 import ch.epfl.dias.cs422.helpers.builder.skeleton
+import ch.epfl.dias.cs422.helpers.rel.RelOperator
 import ch.epfl.dias.cs422.helpers.rel.RelOperator.{NilTuple, Tuple}
 import org.apache.calcite.rex.RexNode
 
@@ -32,12 +33,12 @@ class Join(
     right.open()
     var leftR = List[Tuple]()
     var option = left.next()
-    var tuple : Tuple = NilTuple.get
+    var tuple = IndexedSeq[RelOperator.Elem]()
     //take left child relation
-    if (option.isDefined){
+    if (option != NilTuple){
       tuple = option.get
     }
-    while (option.isDefined){
+    while (option != NilTuple){
       leftR = leftR.:+(tuple)
       option = left.next()
       tuple = option.get
@@ -55,7 +56,7 @@ class Join(
       hashToValues.put(hashKey, tuple)
     }
     option = right.next()
-    while(option.isDefined){
+    while(option != NilTuple){
       tuple = option.get
       val iterator = getRightKeys.iterator
       var hashKey = ""

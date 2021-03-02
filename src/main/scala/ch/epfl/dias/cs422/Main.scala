@@ -6,6 +6,7 @@ import ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
 
 object Main {
   def main(args: Array[String]): Unit = {
+   /*
     val sql = """
 select
     l_returnflag,
@@ -29,6 +30,8 @@ order by
     l_returnflag,
     l_linestatus
       """
+      */
+    val sql = "select l_returnflag, from tpch0_001_lineitem where l_shipdate <= date '1998-12-01'"
 
     val prep = SqlPrepare(Factories.VOLCANO_INSTANCE, "rowstore")
     val rel = prep.prepare(sql)

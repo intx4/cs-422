@@ -56,20 +56,21 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
     */
   override def open(): Unit = {
     rowId = 0
+    print(rowId)
   }
 
    /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    if (rowId != -1) {
+    if (rowId != -1 && rowId < scannable.getRowCount) {
       val tuple = getRow(rowId)
       rowId = rowId + 1
       Some(tuple) //builds an Option[Tuple]
     }
     else{
       //invalid call
-      None //builds a Nil type for Option[Tuple]
+      NilTuple
     }
   }
   /**

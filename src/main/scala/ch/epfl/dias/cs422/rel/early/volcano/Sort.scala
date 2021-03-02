@@ -33,17 +33,10 @@ class Sort protected (
   override def open(): Unit = {
     input.open()
     //consume all unsorted tuples
-    var tuple = input.next()
-    breakable {
-      while (tuple.isDefined) {
-        if (tuple != NilTuple) {
-          sorted = sorted.:+(tuple.get)
-          tuple = input.next()
-        }
-        else {
-          break
-        }
-      }
+    var option = input.next()
+    while (option != NilTuple) {
+        sorted = sorted.:+(option.get)
+        option = input.next()
     }
     val collationList = collation.getFieldCollations
     val iterator = collationList.iterator()
@@ -62,7 +55,7 @@ class Sort protected (
       sorted = sorted.take(fetch.get)
     }
   }
-  private var comparator = new Comparator[RelOperator.Tuple] {
+  private val comparator = new Comparator[RelOperator.Tuple] {
     var direction : RelFieldCollation.Direction = RelFieldCollation.Direction.ASCENDING
     var id : Int = 0
     override def compare(o1: Tuple, o2: Tuple): Int = {
@@ -97,7 +90,7 @@ class Sort protected (
     */
   override def next(): Option[Tuple] = {
     if (index == sorted.length){
-      RelOperator.NilTuple
+      NilTuple
     }
     else{
       index = index + 1

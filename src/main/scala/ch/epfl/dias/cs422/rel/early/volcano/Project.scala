@@ -41,19 +41,14 @@ class Project protected (
   override def next(): Option[Tuple] = {
     val option = input.next()
     if (option.isEmpty) {
-      None
+      NilTuple
     }
     else {
       var tuple = option.get
-      if (tuple == NilTuple) {
-        Some(tuple)
-      }
-      else {
         tuple = evaluator(tuple)
         Some(tuple)
       }
     }
-  }
 
   /**
     * @inheritdoc
