@@ -28,8 +28,7 @@ class Sort protected (
 
   private var sorted = List[Tuple]()
   private var index : Int = 0
-  private var direction : RelFieldCollation.Direction = RelFieldCollation.Direction.ASCENDING
-  private var ind : Int = 0
+  private val collationList = collation.getFieldCollations
   /**
     * @inheritdoc
     */
@@ -45,17 +44,10 @@ class Sort protected (
     val iterator = collationList.iterator()
     while(iterator.hasNext){
       val param = iterator.next()
-      direction = param.getDirection
-      ind = param.getFieldIndex
       //comparator.direction = direction
       //comparator.id = id
       //sorted.asJava.sort(comparator)
-      if (direction == RelFieldCollation.Direction.DESCENDING) {
-        sorted = sorted.sortWith(customCompare(_,_) > 0)
-      }
-      else{
-        sorted = sorted.sortWith(customCompare(_,_) < 0)
-      }
+      sorted = sorted.sortWith(customCompare(_,_))
     }
     if (offset.isDefined){
       sorted = sorted.drop(offset.get)
@@ -96,8 +88,38 @@ class Sort protected (
     }
   }
   */
-  def customCompare(t1: Tuple, t2:Tuple): Int = {
-    t1(ind).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(t2(ind).asInstanceOf[Comparable[RelOperator.Elem]])
+  def customCompare(t1: Tuple, t2:Tuple): Boolean = {
+    //Remember: DESC = > 0, ASC < 0
+    val collationIter = collationList.iterator()
+    var param = collationIter.next()
+    var id = param.getFieldIndex
+    var dir = param.getDirection
+    var result = t1(id).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(t2(id).asInstanceOf[Comparable[RelOperator.Elem]])
+    while (result == 0 && collationIter.hasNext){
+      param = collationIter.next()
+      id = param.getFieldIndex
+      dir = param.getDirection
+      result = t1(id).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(t2(id).asInstanceOf[Comparable[RelOperator.Elem]])
+    }
+    if (result == 0){
+      return false
+    }
+    if (dir == RelFieldCollation.Direction.ASCENDING){
+      if (result < 0){
+        true
+      }
+      else{
+        false
+      }
+    }
+    else{
+      if (result < 0){
+        false
+      }
+      else{
+        true
+      }
+    }
   }
   /**
     * @inheritdoc
