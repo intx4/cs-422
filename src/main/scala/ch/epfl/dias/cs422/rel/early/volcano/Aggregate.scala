@@ -37,7 +37,7 @@ class Aggregate protected (
     var case1 = false
     var case2 = false
     var option = input.next()
-    if (option == NilTuple){
+    if (option == NilTuple && groupSet.isEmpty) {
       case1 = true
     }
     while (option != NilTuple && !case1) {
@@ -47,83 +47,126 @@ class Aggregate protected (
       option = input.next()
     }
     index = 0
-    if (case1){
+    if (case1) {
       //Pseudo-Code 1
       var tuple = IndexedSeq[RelOperator.Elem]()
-      for (agg <- aggCalls){
-        //how to create a tuple with the empty values??
-        //a tuple is an IndexedSeq of RelOperator.Elem
-        tuple = tuple.:+(agg.emptyValue)
+      val agg = aggCalls.iterator
+      while (agg.hasNext) {
+        tuple = tuple.:+(agg.next().emptyValue)
       }
       tuples = tuples.:+(tuple)
     }
-    if (case2){
-      //Pseudo-Code 2
-      // For each tuple, extract the field as given by groupSet and, for each field,
-      // take the hash representation of that field and concatenate it
-      val hashToFields = new mutable.HashMap[String, List[Tuple]]()
-      val hashToValues = new mutable.HashMap[String, List[Tuple]]()
+    if (case2) {
+      if (!groupSet.isEmpty) {
+        //Pseudo-Code 2
+        // For each tuple, extract the field as given by groupSet and, for each field,
+        // take the hash representation of that field and concatenate it
+        val hashToFields = new mutable.HashMap[String, List[Tuple]]()
+        val hashToValues = new mutable.HashMap[String, List[Tuple]]()
 
-      //form groups based on GROUP BY keys
-      for(tuple <- tuplesFromLow){
-        var i = 0
-        var hashKey = ""
-        for(col <- tuple){
-          if (groupSet.asList().contains(i)){
-            hashKey += col.hashCode().toString + "_"
-          }
-          i = i + 1
-        }
-        if (hashToFields.contains(hashKey)){
-          //table containts group by key: insert new aggregates value
-          var list = hashToValues(hashKey)
-          var tupleToInsert = IndexedSeq[RelOperator.Elem]()
-
-          i = 0
-          for(col <- tuple){
-            if (!groupSet.asList().contains(i)){
-              tupleToInsert = tupleToInsert.:+(col)
+        //form groups based on GROUP BY keys
+        val tupleIter = tuplesFromLow.iterator
+        while (tupleIter.hasNext) {
+          val tuple = tupleIter.next()
+          var colIter = tuple.iterator
+          var i = 0
+          var hashKey = ""
+          while (colIter.hasNext) {
+            val col = colIter.next()
+            if (groupSet.asList().contains(i)) {
+              hashKey += col.hashCode().toString + "_"
             }
             i = i + 1
           }
-          list = list.:+(tupleToInsert)
-          hashToValues.put(hashKey, list)
-        }
-        else{
-          //table does not contain this group by key
-
-          var listOfFields = List[Tuple]()
-          var listOfValues = List[Tuple]()
-
-          var fields = IndexedSeq[RelOperator.Elem]()
-          var values = IndexedSeq[RelOperator.Elem]()
-
-          i = 0
-          for (col <- tuple){
-            if (groupSet.asList().contains(i)){
-              fields = fields.:+(col)
+          //given a tuple, check to which group it belongs
+          if (hashToFields.contains(hashKey)) {
+            //table containts group by key: insert new aggregates value
+            var list = hashToValues(hashKey)
+            var tupleToInsert = IndexedSeq[RelOperator.Elem]()
+            i = 0
+            colIter = tuple.iterator
+            while (colIter.hasNext) {
+              val col = colIter.next()
+              if (!groupSet.asList().contains(i)) {
+                tupleToInsert = tupleToInsert.:+(col)
+              }
+              i = i + 1
             }
-            values = values.:+(col)
-            i = i +1
+            list = list.:+(tupleToInsert)
+            hashToValues.put(hashKey, list)
           }
-          listOfFields = listOfFields.:+(fields)
-          listOfValues = listOfValues.:+(values)
+          else {
+            //table does not contain this group by key
 
-          hashToFields.put(hashKey, listOfFields)
-          hashToValues.put(hashKey, listOfValues)
+            var listOfFields = List[Tuple]()
+            var listOfValues = List[Tuple]()
+
+            var fields = IndexedSeq[RelOperator.Elem]()
+            var values = IndexedSeq[RelOperator.Elem]()
+
+            i = 0
+            colIter = tuple.iterator
+            while (colIter.hasNext) {
+              val col = colIter.next()
+              if (groupSet.asList().contains(i)) {
+                fields = fields.:+(col)
+              }
+              values = values.:+(col)
+              i = i + 1
+            }
+            listOfFields = listOfFields.:+(fields)
+            listOfValues = listOfValues.:+(values)
+
+            hashToFields.put(hashKey, listOfFields)
+            hashToValues.put(hashKey, listOfValues)
+          }
+        }
+        //for each group...
+        val iterator = hashToValues.iterator
+        while (iterator.hasNext) {
+          val entry = iterator.next()
+          val values = entry._2
+          val hashKey = entry._1
+          var resultFin = IndexedSeq[RelOperator.Elem]()
+          //for each aggregate call...
+          val aggIter = aggCalls.iterator
+          while (aggIter.hasNext) {
+            val agg = aggIter.next()
+            var resultInt = List[RelOperator.Elem]()
+            val valIter = values.iterator
+            while (valIter.hasNext) {
+              val v = valIter.next()
+              resultInt = resultInt.:+(agg.getArgument(v))
+            }
+            //reduce the tuples in the group by pairs until we have one element left
+            while (resultInt.length > 1) {
+              val args1 = resultInt.head
+              val args2 = resultInt(1)
+
+              val value = agg.reduce(args1, args2)
+              resultInt = resultInt.drop(2).:+(value)
+            }
+            val finalValue = resultInt.head
+            resultFin = resultFin.:+(finalValue)
+          }
+          var tuple = IndexedSeq[RelOperator.Elem]()
+          val fields = hashToFields(hashKey)
+          tuple = tuple.:+(fields)
+          tuple = tuple.:+(resultFin)
+          //add <fields, aggregate values> to tuples
+          tuples = tuples.:+(tuple)
         }
       }
-      //for each group...
-      val iterator = hashToValues.iterator
-      while (iterator.hasNext){
-        //for each aggregate call...
-        val entry = iterator.next()
-        val values = entry._2
-        val hashKey = entry._1
+      else {
+        //no group by
+        val aggIter = aggCalls.iterator
         var resultFin = IndexedSeq[RelOperator.Elem]()
-        for (agg <- aggCalls){
+        while (aggIter.hasNext) {
+          val agg = aggIter.next()
           var resultInt = List[RelOperator.Elem]()
-          for (v <- values){
+          val valIter = tuplesFromLow.iterator
+          while (valIter.hasNext) {
+            val v = valIter.next()
             resultInt = resultInt.:+(agg.getArgument(v))
           }
           //reduce the tuples in the group by pairs until we have one element left
@@ -134,12 +177,10 @@ class Aggregate protected (
             val value = agg.reduce(args1, args2)
             resultInt = resultInt.drop(2).:+(value)
           }
-          val finalValue  = resultInt.head
+          val finalValue = resultInt.head
           resultFin = resultFin.:+(finalValue)
         }
         var tuple = IndexedSeq[RelOperator.Elem]()
-        val fields = hashToFields(hashKey)
-        tuple = tuple.:+(fields)
         tuple = tuple.:+(resultFin)
         //add <fields, aggregate values> to tuples
         tuples = tuples.:+(tuple)
@@ -151,7 +192,7 @@ class Aggregate protected (
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    if (index == tuples.length){
+    if (index >= tuples.length){
       NilTuple
     }
     else{

@@ -45,8 +45,8 @@ class Project protected (
     }
     else {
       var tuple = option.get
-        tuple = evaluator(tuple)
-        Some(tuple)
+      tuple = evaluator(tuple)
+      Some(tuple)
       }
     }
 

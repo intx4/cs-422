@@ -30,7 +30,7 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
   protected val scannable: Store = tableToStore(
     table.unwrap(classOf[ScannableTable])
   )
-  private var rowId = 0
+  private var rowId: Int = 0
   /**
     * Helper function (you do not have to use it or implement it)
     * It's purpose is to show how to convert the [[scannable]] to a
@@ -56,14 +56,13 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
     */
   override def open(): Unit = {
     rowId = 0
-    print(rowId)
   }
 
    /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    if (rowId != -1 && rowId < scannable.getRowCount) {
+    if (rowId < scannable.getRowCount){
       val tuple = getRow(rowId)
       rowId = rowId + 1
       Some(tuple) //builds an Option[Tuple]

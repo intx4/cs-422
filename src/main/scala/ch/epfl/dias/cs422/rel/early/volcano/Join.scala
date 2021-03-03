@@ -35,17 +35,17 @@ class Join(
     var option = left.next()
     var tuple = IndexedSeq[RelOperator.Elem]()
     //take left child relation
-    if (option != NilTuple){
-      tuple = option.get
-    }
     while (option != NilTuple){
+      tuple = option.get
       leftR = leftR.:+(tuple)
       option = left.next()
-      tuple = option.get
+      //here check if option is not empty plz
     }
     //build phase
     val hashToValues = new mutable.HashMap[String, Tuple]()
-    for (tuple <- leftR){
+    val tupleIter = leftR.iterator
+    while (tupleIter.hasNext){
+      val tuple = tupleIter.next()
       val iterator = getLeftKeys.iterator
       var hashKey = ""
       while(iterator.hasNext){
