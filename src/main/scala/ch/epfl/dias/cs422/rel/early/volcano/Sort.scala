@@ -51,10 +51,10 @@ class Sort protected (
       //comparator.id = id
       //sorted.asJava.sort(comparator)
       if (direction == RelFieldCollation.Direction.DESCENDING) {
-        sorted.sortWith(customCompare(_,_) > 0)
+        sorted = sorted.sortWith(customCompare(_,_) > 0)
       }
       else{
-        sorted.sortWith(customCompare(_,_) < 0)
+        sorted = sorted.sortWith(customCompare(_,_) < 0)
       }
     }
     if (offset.isDefined){
