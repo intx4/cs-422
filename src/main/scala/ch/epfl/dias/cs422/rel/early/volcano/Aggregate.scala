@@ -181,7 +181,9 @@ class Aggregate protected (
           resultFin = resultFin.:+(finalValue)
         }
         var tuple = IndexedSeq[RelOperator.Elem]()
-        tuple = tuple.:+(resultFin)
+        for (r <- resultFin) {
+          tuple = tuple.:+(r)
+        }
         //add <fields, aggregate values> to tuples
         tuples = tuples.:+(tuple)
       }

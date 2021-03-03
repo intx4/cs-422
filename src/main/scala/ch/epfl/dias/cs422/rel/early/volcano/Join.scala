@@ -67,7 +67,9 @@ class Join(
       }
       if (hashToValues.contains(hashKey)){
         var tupleToInsert = hashToValues(hashKey)
-        tupleToInsert = tupleToInsert.:+(tuple)
+        for (col <- tuple){
+          tupleToInsert = tupleToInsert.:+(col)
+        }
         joined = joined.:+(tupleToInsert)
       }
       option = right.next()
