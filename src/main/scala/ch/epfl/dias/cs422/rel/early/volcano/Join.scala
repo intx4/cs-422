@@ -42,7 +42,7 @@ class Join(
       //here check if option is not empty plz
     }
     //build phase
-    val hashToValues = new mutable.HashMap[String, Tuple]()
+    val hashToValues = new mutable.HashMap[String, List[Tuple]]()
     val tupleIter = leftR.iterator
     while (tupleIter.hasNext){
       val tuple = tupleIter.next()
@@ -53,7 +53,16 @@ class Join(
         val col = tuple(i).hashCode().toString
         hashKey += col + "_"
       }
-      hashToValues.put(hashKey, tuple)
+      if (hashToValues.contains(hashKey)){
+        var list = hashToValues(hashKey)
+        list = list.:+(tuple)
+        hashToValues.put(hashKey, list)
+      }
+      else {
+        var list = List[Tuple]()
+        list = list.:+(tuple)
+        hashToValues.put(hashKey,list)
+      }
     }
     option = right.next()
     while(option != NilTuple){
@@ -65,12 +74,15 @@ class Join(
         val col = tuple(i).hashCode().toString
         hashKey += col + "_"
       }
-      if (hashToValues.contains(hashKey)){
-        var tupleToInsert = hashToValues(hashKey)
-        for (col <- tuple){
-          tupleToInsert = tupleToInsert.:+(col)
+      if (hashToValues.contains(hashKey)) {
+        val listIter = hashToValues(hashKey).iterator
+        while (listIter.hasNext) {
+          var tupleToInsert = listIter.next()
+          for (col <- tuple) {
+            tupleToInsert = tupleToInsert.:+(col)
+          }
+          joined = joined.:+(tupleToInsert)
         }
-        joined = joined.:+(tupleToInsert)
       }
       option = right.next()
     }

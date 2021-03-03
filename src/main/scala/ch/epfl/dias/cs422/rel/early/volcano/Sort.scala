@@ -8,6 +8,7 @@ import org.apache.calcite.rel.{RelCollation, RelFieldCollation}
 import util.control.Breaks._
 import java.util.Comparator
 import scala.collection.JavaConverters._
+import scala.reflect.internal.util.Collections
 
 
 /**
@@ -27,6 +28,8 @@ class Sort protected (
 
   private var sorted = List[Tuple]()
   private var index : Int = 0
+  private var direction : RelFieldCollation.Direction = RelFieldCollation.Direction.ASCENDING
+  private var ind : Int = 0
   /**
     * @inheritdoc
     */
@@ -42,11 +45,17 @@ class Sort protected (
     val iterator = collationList.iterator()
     while(iterator.hasNext){
       val param = iterator.next()
-      val direction = param.getDirection
-      val id = param.getFieldIndex
-      comparator.direction = direction
-      comparator.id = id
-      sorted.asJava.sort(comparator)
+      direction = param.getDirection
+      ind = param.getFieldIndex
+      //comparator.direction = direction
+      //comparator.id = id
+      //sorted.asJava.sort(comparator)
+      if (direction == RelFieldCollation.Direction.DESCENDING) {
+        sorted.sortWith(customCompare(_,_) > 0)
+      }
+      else{
+        sorted.sortWith(customCompare(_,_) < 0)
+      }
     }
     if (offset.isDefined){
       sorted = sorted.drop(offset.get)
@@ -55,17 +64,18 @@ class Sort protected (
       sorted = sorted.take(fetch.get)
     }
   }
+  /*
   private val comparator = new Comparator[RelOperator.Tuple] {
     var direction : RelFieldCollation.Direction = RelFieldCollation.Direction.ASCENDING
     var id : Int = 0
     override def compare(o1: Tuple, o2: Tuple): Int = {
       val result = o1(id).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(o2(id).asInstanceOf[Comparable[RelOperator.Elem]])
       if (direction.isDescending){
-        if ( result == 1){
+        if ( result > 0){
           //meaning o1(id) > o2(id)
           1
         }
-        else if (result == -1){
+        else if (result < 0){
           -1
         }
         else{
@@ -73,10 +83,10 @@ class Sort protected (
         }
       }
       else {
-        if (result == 1) {
+        if (result > 0) {
           -1
         }
-        else if (result == -1){
+        else if (result < 0){
           1
         }
         else{
@@ -84,6 +94,10 @@ class Sort protected (
         }
       }
     }
+  }
+  */
+  def customCompare(t1: Tuple, t2:Tuple): Int = {
+    t1(ind).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(t2(ind).asInstanceOf[Comparable[RelOperator.Elem]])
   }
   /**
     * @inheritdoc

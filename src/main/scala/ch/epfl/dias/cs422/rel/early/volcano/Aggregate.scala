@@ -61,27 +61,26 @@ class Aggregate protected (
         //Pseudo-Code 2
         // For each tuple, extract the field as given by groupSet and, for each field,
         // take the hash representation of that field and concatenate it
-        val hashToFields = new mutable.HashMap[String, List[Tuple]]()
+        val hashToFields = new mutable.HashMap[String, Tuple]()
         val hashToValues = new mutable.HashMap[String, List[Tuple]]()
 
         //form groups based on GROUP BY keys
         val tupleIter = tuplesFromLow.iterator
         while (tupleIter.hasNext) {
           val tuple = tupleIter.next()
-          var colIter = tuple.iterator
-          var i = 0
+          var colIter = groupSet.asList().iterator()
           var hashKey = ""
+          //form hash of keys
           while (colIter.hasNext) {
-            val col = colIter.next()
-            if (groupSet.asList().contains(i)) {
-              hashKey += col.hashCode().toString + "_"
-            }
-            i = i + 1
+            val i = colIter.next()
+            hashKey += tuple(i).hashCode().toString + "_"
           }
           //given a tuple, check to which group it belongs
           if (hashToFields.contains(hashKey)) {
             //table containts group by key: insert new aggregates value
+
             var list = hashToValues(hashKey)
+            /*
             var tupleToInsert = IndexedSeq[RelOperator.Elem]()
             i = 0
             colIter = tuple.iterator
@@ -92,40 +91,33 @@ class Aggregate protected (
               }
               i = i + 1
             }
-            list = list.:+(tupleToInsert)
+            */
+            list = list.:+(tuple)
             hashToValues.put(hashKey, list)
           }
           else {
             //table does not contain this group by key
 
-            var listOfFields = List[Tuple]()
             var listOfValues = List[Tuple]()
 
             var fields = IndexedSeq[RelOperator.Elem]()
-            var values = IndexedSeq[RelOperator.Elem]()
 
-            i = 0
-            colIter = tuple.iterator
+            colIter = groupSet.asList().iterator()
             while (colIter.hasNext) {
-              val col = colIter.next()
-              if (groupSet.asList().contains(i)) {
-                fields = fields.:+(col)
-              }
-              values = values.:+(col)
-              i = i + 1
+              val i = colIter.next()
+              fields = fields.:+(tuple(i))
             }
-            listOfFields = listOfFields.:+(fields)
-            listOfValues = listOfValues.:+(values)
+            listOfValues = listOfValues.:+(tuple)
 
-            hashToFields.put(hashKey, listOfFields)
+            hashToFields.put(hashKey, fields)
             hashToValues.put(hashKey, listOfValues)
           }
         }
         //for each group...
-        val iterator = hashToValues.iterator
-        while (iterator.hasNext) {
-          val entry = iterator.next()
-          val values = entry._2
+        val groupIter = hashToValues.iterator
+        while (groupIter.hasNext) {
+          val entry = groupIter.next()
+          val values = entry._2 //list of all tuples in the group
           val hashKey = entry._1
           var resultFin = IndexedSeq[RelOperator.Elem]()
           //for each aggregate call...
@@ -135,7 +127,7 @@ class Aggregate protected (
             var resultInt = List[RelOperator.Elem]()
             val valIter = values.iterator
             while (valIter.hasNext) {
-              val v = valIter.next()
+              val v = valIter.next() //a tuple in the group
               resultInt = resultInt.:+(agg.getArgument(v))
             }
             //reduce the tuples in the group by pairs until we have one element left
@@ -151,8 +143,12 @@ class Aggregate protected (
           }
           var tuple = IndexedSeq[RelOperator.Elem]()
           val fields = hashToFields(hashKey)
-          tuple = tuple.:+(fields)
-          tuple = tuple.:+(resultFin)
+          for (f <- fields) {
+            tuple = tuple.:+(f)
+          }
+          for (r <- resultFin) {
+            tuple = tuple.:+(r)
+          }
           //add <fields, aggregate values> to tuples
           tuples = tuples.:+(tuple)
         }
