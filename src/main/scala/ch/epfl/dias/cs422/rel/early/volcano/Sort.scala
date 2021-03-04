@@ -8,6 +8,7 @@ import org.apache.calcite.rel.{RelCollation, RelFieldCollation}
 import util.control.Breaks._
 import java.util.Comparator
 import scala.collection.JavaConverters._
+import scala.math.Ordering.Implicits.seqOrdering
 import scala.reflect.internal.util.Collections
 
 
@@ -29,10 +30,49 @@ class Sort protected (
   private var sorted = List[Tuple]()
   private var index : Int = 0
   private val collationList = collation.getFieldCollations
+
+  object customOrdering extends Ordering[Tuple]{
+    override def compare(t1: Tuple, t2: Tuple): Int = {
+      //Remember: DESC = > 0, ASC < 0
+      val collationIter = collationList.iterator()
+      var param = collationIter.next()
+      var id = param.getFieldIndex
+      var dir = param.getDirection
+      var result = t1(id).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(t2(id).asInstanceOf[Comparable[RelOperator.Elem]])
+      while (result == 0 && collationIter.hasNext){
+        param = collationIter.next()
+        id = param.getFieldIndex
+        dir = param.getDirection
+        result = t1(id).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(t2(id).asInstanceOf[Comparable[RelOperator.Elem]])
+      }
+      if (dir == RelFieldCollation.Direction.DESCENDING){
+        result
+      }
+      else {
+        (-1)*result
+      }
+    }
+  }
+
+  private var pq = new collection.mutable.PriorityQueue[Tuple]()(customOrdering)
   /**
     * @inheritdoc
     */
   override def open(): Unit = {
+    input.open()
+    var option = input.next()
+    while (option != NilTuple) {
+      pq.enqueue(option.get)
+      option = input.next()
+    }
+    if (offset.isDefined){
+      pq = pq.drop(offset.get)
+    }
+    if (fetch.isDefined){
+      pq = pq.take(fetch.get)
+    }
+  }
+    /*
     input.open()
     //consume all unsorted tuples
     var option = input.next()
@@ -56,38 +96,7 @@ class Sort protected (
       sorted = sorted.take(fetch.get)
     }
   }
-  /*
-  private val comparator = new Comparator[RelOperator.Tuple] {
-    var direction : RelFieldCollation.Direction = RelFieldCollation.Direction.ASCENDING
-    var id : Int = 0
-    override def compare(o1: Tuple, o2: Tuple): Int = {
-      val result = o1(id).asInstanceOf[Comparable[RelOperator.Elem]].compareTo(o2(id).asInstanceOf[Comparable[RelOperator.Elem]])
-      if (direction.isDescending){
-        if ( result > 0){
-          //meaning o1(id) > o2(id)
-          1
-        }
-        else if (result < 0){
-          -1
-        }
-        else{
-          0
-        }
-      }
-      else {
-        if (result > 0) {
-          -1
-        }
-        else if (result < 0){
-          1
-        }
-        else{
-          0
-        }
-      }
-    }
-  }
-  */
+
   def customCompare(t1: Tuple, t2:Tuple): Boolean = {
     //Remember: DESC = > 0, ASC < 0
     val collationIter = collationList.iterator()
@@ -121,16 +130,25 @@ class Sort protected (
       }
     }
   }
+  */
   /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
+    /*
     if (index == sorted.length){
       NilTuple
     }
     else{
       index = index + 1
-      Some(sorted(index-1))
+      Some(pq.dequeue())
+    }
+   */
+    if (pq.isEmpty){
+      NilTuple
+    }
+    else{
+      Some(pq.dequeue())
     }
   }
 
