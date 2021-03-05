@@ -55,30 +55,6 @@ class Join(
         hashToValues.put(hashKey,list)
       }
       option = left.next()
-      //here check if option is not empty plz
-    }
-
-    option = right.next()
-    while(option != NilTuple){
-      tuple = option.get
-      val iterator = getRightKeys.iterator
-      var hashKey = ""
-      while(iterator.hasNext){
-        val i = iterator.next()
-        val col = tuple(i).hashCode().toString
-        hashKey += col + "_"
-      }
-      if (hashToValues.contains(hashKey)) {
-        val listIter = hashToValues(hashKey).iterator
-        while (listIter.hasNext) {
-          var tupleToInsert = listIter.next()
-          for (col <- tuple) {
-            tupleToInsert = tupleToInsert.:+(col)
-          }
-          joined = joined.:+(tupleToInsert)
-        }
-      }
-      option = right.next()
     }
   }
 
@@ -87,20 +63,16 @@ class Join(
     */
   override def next(): Option[Tuple] = {
     if (joined.isEmpty){
-    val option = right.next()
-    if (option == NilTuple) {
-      NilTuple
-    }
-    else {
-      val tuple = option.get
-      var hashKey = ""
-      for (key <- getRightKeys) {
-        val col = tuple(key).hashCode().toString
-        hashKey += col + "_"
-      }
-      if (hashToValues.contains(hashKey)) {
-        for (entry <- hashToValues) {
-          var values = entry._2
+      var option = right.next()
+      while (option != NilTuple){
+        val tuple = option.get
+        var hashKey = ""
+        for (key <- getRightKeys) {
+          val col = tuple(key).hashCode().toString
+          hashKey += col + "_"
+        }
+        if (hashToValues.contains(hashKey)) {
+          val values = hashToValues(hashKey)
           for (v <- values) {
             var tupleToInsert = v
             for (col <- tuple) {
@@ -108,12 +80,14 @@ class Join(
             }
             joined += tupleToInsert
           }
+          return Some(joined.dequeue())
         }
-      }
-      Some(joined.dequeue())
+          option = right.next()
+        }
+      NilTuple
     }
-  }
     else{
+      //consume the queue
       Some(joined.dequeue())
     }
   }
