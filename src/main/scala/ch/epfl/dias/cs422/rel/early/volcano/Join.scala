@@ -23,7 +23,8 @@ class Join(
     ](left, right, condition)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  private var joined = List[Tuple]()
+  private var joined = collection.mutable.Queue[Tuple]()
+  private val hashToValues = new mutable.HashMap[String, Array[Tuple]]()
   private var index = 0
   /**
     * @inheritdoc
@@ -31,26 +32,16 @@ class Join(
   override def open(): Unit = {
     left.open()
     right.open()
-    var leftR = List[Tuple]()
+
     var option = left.next()
     var tuple = IndexedSeq[RelOperator.Elem]()
     //take left child relation
+    //build phase
     while (option != NilTuple){
       tuple = option.get
-      leftR = leftR.:+(tuple)
-      option = left.next()
-      //here check if option is not empty plz
-    }
-    //build phase
-    val hashToValues = new mutable.HashMap[String, List[Tuple]]()
-    val tupleIter = leftR.iterator
-    while (tupleIter.hasNext){
-      val tuple = tupleIter.next()
-      val iterator = getLeftKeys.iterator
       var hashKey = ""
-      while(iterator.hasNext){
-        val i = iterator.next()
-        val col = tuple(i).hashCode().toString
+      for (key <- getLeftKeys){
+        val col = tuple(key).hashCode().toString
         hashKey += col + "_"
       }
       if (hashToValues.contains(hashKey)){
@@ -59,11 +50,14 @@ class Join(
         hashToValues.put(hashKey, list)
       }
       else {
-        var list = List[Tuple]()
+        var list = Array[Tuple]()
         list = list.:+(tuple)
         hashToValues.put(hashKey,list)
       }
+      option = left.next()
+      //here check if option is not empty plz
     }
+
     option = right.next()
     while(option != NilTuple){
       tuple = option.get
@@ -92,15 +86,37 @@ class Join(
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    if (index == joined.length){
+    if (joined.isEmpty){
+    val option = right.next()
+    if (option == NilTuple) {
       NilTuple
     }
-    else{
-      index = index + 1
-      Some(joined(index-1))
+    else {
+      val tuple = option.get
+      var hashKey = ""
+      for (key <- getRightKeys) {
+        val col = tuple(key).hashCode().toString
+        hashKey += col + "_"
+      }
+      if (hashToValues.contains(hashKey)) {
+        for (entry <- hashToValues) {
+          var values = entry._2
+          for (v <- values) {
+            var tupleToInsert = v
+            for (col <- tuple) {
+              tupleToInsert = tupleToInsert.:+(col)
+            }
+            joined += tupleToInsert
+          }
+        }
+      }
+      Some(joined.dequeue())
     }
   }
-
+    else{
+      Some(joined.dequeue())
+    }
+  }
 
   /**
     * @inheritdoc
